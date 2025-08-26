@@ -4,31 +4,14 @@ import {
   Building2, 
   Calendar, 
   FileText, 
-  Shield, 
   Activity, 
   Search, 
-  Filter, 
   Plus,
-  ArrowLeft,
   Phone,
   Mail,
   MapPin,
-  Eye,
-  Edit,
-  Trash2,
   MoreVertical,
   User,
-  Clock,
-  Tag,
-  Heart,
-  Thermometer,
-  Weight,
-  Ruler,
-  Download,
-  Send,
-  CheckCircle,
-  XCircle,
-  AlertCircle,
   MessageSquare
 } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
@@ -47,9 +30,6 @@ const AdminDashboard: React.FC = () => {
   const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [doctorsLoading, setDoctorsLoading] = useState(false);
-  const [userData, setUserData] = useState<any[]>([]);
-  const [userLoading, setUserLoading] = useState(false);
   const [showPatientDetail, setShowPatientDetail] = useState(false);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
