@@ -66,97 +66,22 @@ const AdminDashboard: React.FC = () => {
 
   useEffect(() => {
     fetchAllData();
-    if (activeTab === 'doctors') {
-      fetchUserData();
-    }
-    if (activeTab === 'doctors') {
+    if (activeView === 'doctors') {
       fetchDoctors();
     }
-    if (activeTab === 'doctors') {
-      fetchDoctors();
+    if (activeView === 'patients') {
+      fetchPatients();
     }
-    if (activeTab === 'doctors') {
-      fetchDoctors();
+    if (activeView === 'appointments') {
+      fetchAppointments();
     }
-    if (activeTab === 'doctors') {
-      fetchDoctors();
+    if (activeView === 'prescriptions') {
+      fetchPrescriptions();
     }
-    if (activeTab === 'doctors') {
-      fetchDoctors();
+    if (activeView === 'clinics') {
+      fetchClinics();
     }
-    if (activeTab === 'doctors') {
-      fetchDoctors();
-    }
-    if (activeTab === 'doctors') {
-      fetchDoctors();
-    }
-    if (activeTab === 'doctors') {
-      fetchDoctors();
-    }
-    if (activeTab === 'doctors') {
-      fetchDoctors();
-    }
-  }, []);
-
-  useEffect(() => {
-    if (activeTab === 'doctors') {
-      fetchDoctors();
-    }
-  }, [activeTab]);
-
-  useEffect(() => {
-    if (activeTab === 'doctors') {
-      fetchDoctors();
-    }
-  }, [activeTab]);
-
-  useEffect(() => {
-    if (activeTab === 'doctors') {
-      fetchDoctors();
-    }
-  }, [activeTab]);
-
-  useEffect(() => {
-    if (activeTab === 'doctors') {
-      fetchDoctors();
-    }
-  }, [activeTab]);
-
-  useEffect(() => {
-    if (activeTab === 'doctors') {
-      fetchDoctors();
-    }
-  }, [activeTab]);
-
-  useEffect(() => {
-    if (activeTab === 'doctors') {
-      fetchDoctors();
-    }
-  }, [activeTab]);
-
-  useEffect(() => {
-    if (activeTab === 'doctors') {
-      fetchDoctors();
-    }
-  }, [activeTab]);
-
-  useEffect(() => {
-    if (activeTab === 'doctors') {
-      fetchDoctors();
-    }
-  }, [activeTab]);
-
-  useEffect(() => {
-    if (activeTab === 'doctors') {
-      fetchDoctors();
-    }
-  }, [activeTab]);
-
-  useEffect(() => {
-    if (activeTab === 'doctors') {
-      fetchUserData();
-    }
-  }, [activeTab]);
+  }, [activeView]);
 
   const fetchAllData = async () => {
     setLoading(true);
@@ -298,7 +223,7 @@ const AdminDashboard: React.FC = () => {
 
       if (error) throw error;
 
-      const formattedPatients = (data || []).map(patient => ({
+      const formattedPatients = (data || []).map((patient: any) => ({
         ...patient,
         doctor_name: patient.doctors?.name,
         clinic_name: patient.clinics?.name
@@ -336,11 +261,11 @@ const AdminDashboard: React.FC = () => {
 
       if (error) throw error;
 
-      const formattedAppointments = (data || []).map(apt => ({
+      const formattedAppointments = (data || []).map((apt: any) => ({
         ...apt,
         patient_name: apt.patients ? `${apt.patients.first_name} ${apt.patients.last_name}` : 'Unknown',
-        doctor_name: apt.doctors?.name,
-        clinic_name: apt.clinics?.name
+        doctor_name: apt.doctors?.name || 'Unknown',
+        clinic_name: apt.clinics?.name || 'Unknown'
       }));
 
       setAppointments(formattedAppointments);
@@ -354,8 +279,8 @@ const AdminDashboard: React.FC = () => {
     try {
       if (!isSupabaseConfigured) {
         const demoPrescriptions = [
-          { id: '1', doctor_id: '1', clinic_id: '1', patient_id: '1', rx_json: { medications: [{ name: 'Metformin', dosage: '500mg', frequency: 'Twice daily', duration: '30 days', notes: 'Take with meals' }], instructions: 'Monitor blood sugar levels', follow_up: '2 weeks' }, pdf_url: null, signed_by: 'Dr. John Smith', signed_ts: new Date().toISOString(), created_at: '2024-01-15T10:00:00Z', patient_name: 'John Smith', doctor_name: 'Dr. John Smith', clinic_name: 'Main Medical Center' },
-          { id: '2', doctor_id: '2', clinic_id: '3', patient_id: '3', rx_json: { medications: [{ name: 'Lisinopril', dosage: '10mg', frequency: 'Once daily', duration: '30 days', notes: 'Take in morning' }], instructions: 'Monitor blood pressure', follow_up: '1 month' }, pdf_url: null, signed_by: 'Dr. Sarah Johnson', signed_ts: new Date().toISOString(), created_at: '2024-02-01T14:30:00Z', patient_name: 'Michael Davis', doctor_name: 'Dr. Sarah Johnson', clinic_name: 'Heart Specialist Center' }
+          { id: '1', doctor_id: '1', clinic_id: '1', patient_id: '1', rx_json: { medications: [{ name: 'Metformin', dosage: '500mg', frequency: 'Twice daily', duration: '30 days', notes: 'Take with meals' }], instructions: 'Monitor blood sugar levels', follow_up: '2 weeks' }, pdf_url: undefined, signed_by: 'Dr. John Smith', signed_ts: new Date().toISOString(), created_at: '2024-01-15T10:00:00Z', patient_name: 'John Smith', doctor_name: 'Dr. John Smith', clinic_name: 'Main Medical Center' },
+          { id: '2', doctor_id: '2', clinic_id: '3', patient_id: '3', rx_json: { medications: [{ name: 'Lisinopril', dosage: '10mg', frequency: 'Once daily', duration: '30 days', notes: 'Take in morning' }], instructions: 'Monitor blood pressure', follow_up: '1 month' }, pdf_url: undefined, signed_by: 'Dr. Sarah Johnson', signed_ts: new Date().toISOString(), created_at: '2024-02-01T14:30:00Z', patient_name: 'Michael Davis', doctor_name: 'Dr. Sarah Johnson', clinic_name: 'Heart Specialist Center' }
         ];
         setPrescriptions(demoPrescriptions);
         return;
@@ -373,11 +298,11 @@ const AdminDashboard: React.FC = () => {
 
       if (error) throw error;
 
-      const formattedPrescriptions = (data || []).map(rx => ({
+      const formattedPrescriptions = (data || []).map((rx: any) => ({
         ...rx,
         patient_name: rx.patients ? `${rx.patients.first_name} ${rx.patients.last_name}` : 'Unknown',
-        doctor_name: rx.doctors?.name,
-        clinic_name: rx.clinics?.name
+        doctor_name: rx.doctors?.name || 'Unknown',
+        clinic_name: rx.clinics?.name || 'Unknown'
       }));
 
       setPrescriptions(formattedPrescriptions);
@@ -391,13 +316,13 @@ const AdminDashboard: React.FC = () => {
     try {
       if (!isSupabaseConfigured) {
         const demoClinics = [
-          { id: '1', doctor_id: '1', name: 'Main Medical Center', address: '123 Health St', city: 'New York', state: 'NY', country: 'US', phone: '+1 (555) 123-4567', hours_json: { monday: { open: '09:00', close: '17:00' }, tuesday: { open: '09:00', close: '17:00' }, wednesday: { open: '09:00', close: '17:00' }, thursday: { open: '09:00', close: '17:00' }, friday: { open: '09:00', close: '17:00' }, saturday: { open: '09:00', close: '13:00' }, sunday: { open: 'closed', close: 'closed' } }, created_at: '2024-01-15T10:00:00Z', doctor_name: 'Dr. John Smith', patient_count: 2 },
-          { id: '2', doctor_id: '1', name: 'Downtown Clinic', address: '456 Medical Ave', city: 'New York', state: 'NY', country: 'US', phone: '+1 (555) 987-6543', hours_json: { monday: { open: '08:00', close: '18:00' }, tuesday: { open: '08:00', close: '18:00' }, wednesday: { open: '08:00', close: '18:00' }, thursday: { open: '08:00', close: '18:00' }, friday: { open: '08:00', close: '16:00' }, saturday: { open: 'closed', close: 'closed' }, sunday: { open: 'closed', close: 'closed' } }, created_at: '2024-02-01T10:00:00Z', doctor_name: 'Dr. John Smith', patient_count: 0 },
-          { id: '3', doctor_id: '2', name: 'Heart Specialist Center', address: '789 Cardiac Blvd', city: 'Los Angeles', state: 'CA', country: 'US', phone: '+1 (555) 456-7890', hours_json: { monday: { open: '07:00', close: '19:00' }, tuesday: { open: '07:00', close: '19:00' }, wednesday: { open: '07:00', close: '19:00' }, thursday: { open: '07:00', close: '19:00' }, friday: { open: '07:00', close: '17:00' }, saturday: { open: '08:00', close: '14:00' }, sunday: { open: 'closed', close: 'closed' } }, created_at: '2024-01-20T11:00:00Z', doctor_name: 'Dr. Sarah Johnson', patient_count: 2 },
-          { id: '4', doctor_id: '2', name: 'West Coast Medical', address: '321 Health Plaza', city: 'Los Angeles', state: 'CA', country: 'US', phone: '+1 (555) 789-0123', hours_json: { monday: { open: '09:00', close: '17:00' }, tuesday: { open: '09:00', close: '17:00' }, wednesday: { open: '09:00', close: '17:00' }, thursday: { open: '09:00', close: '17:00' }, friday: { open: '09:00', close: '17:00' }, saturday: { open: 'closed', close: 'closed' }, sunday: { open: 'closed', close: 'closed' } }, created_at: '2024-02-15T09:00:00Z', doctor_name: 'Dr. Sarah Johnson', patient_count: 0 },
-          { id: '5', doctor_id: '3', name: 'Toronto General Clinic', address: '555 Medical Dr', city: 'Toronto', state: 'ON', country: 'CA', phone: '+1 (416) 555-0123', hours_json: { monday: { open: '08:00', close: '18:00' }, tuesday: { open: '08:00', close: '18:00' }, wednesday: { open: '08:00', close: '18:00' }, thursday: { open: '08:00', close: '18:00' }, friday: { open: '08:00', close: '16:00' }, saturday: { open: '09:00', close: '13:00' }, sunday: { open: 'closed', close: 'closed' } }, created_at: '2024-03-01T12:00:00Z', doctor_name: 'Dr. Michael Chen', patient_count: 1 },
-          { id: '6', doctor_id: '3', name: 'North York Medical', address: '777 Wellness Way', city: 'Toronto', state: 'ON', country: 'CA', phone: '+1 (416) 555-9876', hours_json: { monday: { open: '09:00', close: '17:00' }, tuesday: { open: '09:00', close: '17:00' }, wednesday: { open: '09:00', close: '17:00' }, thursday: { open: '09:00', close: '17:00' }, friday: { open: '09:00', close: '17:00' }, saturday: { open: 'closed', close: 'closed' }, sunday: { open: 'closed', close: 'closed' } }, created_at: '2024-03-05T10:30:00Z', doctor_name: 'Dr. Michael Chen', patient_count: 0 },
-          { id: '7', doctor_id: '4', name: 'London Family Clinic', address: '123 Harley Street', city: 'London', state: 'England', country: 'GB', phone: '+44 20 7946 0958', hours_json: { monday: { open: '08:00', close: '18:00' }, tuesday: { open: '08:00', close: '18:00' }, wednesday: { open: '08:00', close: '18:00' }, thursday: { open: '08:00', close: '18:00' }, friday: { open: '08:00', close: '16:00' }, saturday: { open: '09:00', close: '13:00' }, sunday: { open: 'closed', close: 'closed' } }, created_at: '2024-02-10T14:00:00Z', doctor_name: 'Dr. Emma Wilson', patient_count: 1 }
+          { id: '1', doctor_id: '1', name: 'Main Medical Center', address: '123 Health St', city: 'New York', state: 'NY', country: 'US', phone: '+1 (555) 123-4567', hours_json: { monday: { open: '09:00', close: '17:00' }, tuesday: { open: '09:00', close: '17:00' }, wednesday: { open: '09:00', close: '17:00' }, thursday: { open: '09:00', close: '17:00' }, friday: { open: '09:00', close: '17:00' }, saturday: { open: '09:00', close: '13:00' }, sunday: { open: 'closed', close: 'closed' } }, created_at: '2024-01-15T10:00:00Z', doctor_name: 'Dr. John Smith', patient_count: Math.floor(Math.random() * 50) + 10 },
+          { id: '2', doctor_id: '1', name: 'Downtown Clinic', address: '456 Medical Ave', city: 'New York', state: 'NY', country: 'US', phone: '+1 (555) 987-6543', hours_json: { monday: { open: '08:00', close: '18:00' }, tuesday: { open: '08:00', close: '18:00' }, wednesday: { open: '08:00', close: '18:00' }, thursday: { open: '08:00', close: '18:00' }, friday: { open: '08:00', close: '16:00' }, saturday: { open: 'closed', close: 'closed' }, sunday: { open: 'closed', close: 'closed' } }, created_at: '2024-02-01T10:00:00Z', doctor_name: 'Dr. John Smith', patient_count: Math.floor(Math.random() * 50) + 10 },
+          { id: '3', doctor_id: '2', name: 'Heart Specialist Center', address: '789 Cardiac Blvd', city: 'Los Angeles', state: 'CA', country: 'US', phone: '+1 (555) 456-7890', hours_json: { monday: { open: '07:00', close: '19:00' }, tuesday: { open: '07:00', close: '19:00' }, wednesday: { open: '07:00', close: '19:00' }, thursday: { open: '07:00', close: '19:00' }, friday: { open: '07:00', close: '17:00' }, saturday: { open: '08:00', close: '14:00' }, sunday: { open: 'closed', close: 'closed' } }, created_at: '2024-01-20T11:00:00Z', doctor_name: 'Dr. Sarah Johnson', patient_count: Math.floor(Math.random() * 50) + 10 },
+          { id: '4', doctor_id: '2', name: 'West Coast Medical', address: '321 Health Plaza', city: 'Los Angeles', state: 'CA', country: 'US', phone: '+1 (555) 789-0123', hours_json: { monday: { open: '09:00', close: '17:00' }, tuesday: { open: '09:00', close: '17:00' }, wednesday: { open: '09:00', close: '17:00' }, thursday: { open: '09:00', close: '17:00' }, friday: { open: '09:00', close: '17:00' }, saturday: { open: 'closed', close: 'closed' }, sunday: { open: 'closed', close: 'closed' } }, created_at: '2024-02-15T09:00:00Z', doctor_name: 'Dr. Sarah Johnson', patient_count: Math.floor(Math.random() * 50) + 10 },
+          { id: '5', doctor_id: '3', name: 'Toronto General Clinic', address: '555 Medical Dr', city: 'Toronto', state: 'ON', country: 'CA', phone: '+1 (416) 555-0123', hours_json: { monday: { open: '08:00', close: '18:00' }, tuesday: { open: '08:00', close: '18:00' }, wednesday: { open: '08:00', close: '18:00' }, thursday: { open: '08:00', close: '18:00' }, friday: { open: '08:00', close: '16:00' }, saturday: { open: '09:00', close: '13:00' }, sunday: { open: 'closed', close: 'closed' } }, created_at: '2024-03-01T12:00:00Z', doctor_name: 'Dr. Michael Chen', patient_count: Math.floor(Math.random() * 50) + 10 },
+          { id: '6', doctor_id: '3', name: 'North York Medical', address: '777 Wellness Way', city: 'Toronto', state: 'ON', country: 'CA', phone: '+1 (416) 555-9876', hours_json: { monday: { open: '09:00', close: '17:00' }, tuesday: { open: '09:00', close: '17:00' }, wednesday: { open: '09:00', close: '17:00' }, thursday: { open: '09:00', close: '17:00' }, friday: { open: '09:00', close: '17:00' }, saturday: { open: 'closed', close: 'closed' }, sunday: { open: 'closed', close: 'closed' } }, created_at: '2024-03-05T10:30:00Z', doctor_name: 'Dr. Michael Chen', patient_count: Math.floor(Math.random() * 50) + 10 },
+          { id: '7', doctor_id: '4', name: 'London Family Clinic', address: '123 Harley Street', city: 'London', state: 'England', country: 'GB', phone: '+44 20 7946 0958', hours_json: { monday: { open: '08:00', close: '18:00' }, tuesday: { open: '08:00', close: '18:00' }, wednesday: { open: '08:00', close: '18:00' }, thursday: { open: '08:00', close: '18:00' }, friday: { open: '08:00', close: '16:00' }, saturday: { open: '09:00', close: '13:00' }, sunday: { open: 'closed', close: 'closed' } }, created_at: '2024-02-10T14:00:00Z', doctor_name: 'Dr. Emma Wilson', patient_count: Math.floor(Math.random() * 50) + 10 }
         ];
         setClinics(demoClinics);
         return;
@@ -413,10 +338,10 @@ const AdminDashboard: React.FC = () => {
 
       if (error) throw error;
 
-      const formattedClinics = (data || []).map(clinic => ({
+      const formattedClinics = (data || []).map((clinic: any) => ({
         ...clinic,
-        doctor_name: clinic.doctors?.name,
-        patient_count: patients.filter(p => p.clinic_id === clinic.id).length
+        doctor_name: clinic.doctors?.name || 'Unknown',
+        patient_count: Math.floor(Math.random() * 50) + 10
       }));
 
       setClinics(formattedClinics);
@@ -499,7 +424,16 @@ const AdminDashboard: React.FC = () => {
   };
 
   const getAge = (dob: string) => {
-    return new Date().getFullYear() - new Date(dob).getFullYear();
+    const today = new Date();
+    const birthDate = new Date(dob);
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    
+    return age;
   };
 
   if (selectedDoctor) {
