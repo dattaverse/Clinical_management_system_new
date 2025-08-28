@@ -517,12 +517,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ setActiveTab }) => {
       {/* Add Doctor Modal */}
       {showAddModal && (
         <AddDoctorModal
+         isOpen={showAddModal}
           onClose={() => setShowAddModal(false)}
-          onDoctorAdded={(newDoctor) => {
-            setDoctors(prev => [newDoctor, ...prev]);
-            setSystemStats(prev => ({ ...prev, totalDoctors: prev.totalDoctors + 1 }));
-            setShowAddModal(false);
-          }}
+         onDoctorAdded={() => {
+           fetchDoctors();
+           setShowAddModal(false);
+         }}
         />
       )}
     </div>
