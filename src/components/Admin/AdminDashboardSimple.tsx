@@ -42,19 +42,29 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ setActiveTab }) => {
   useEffect(() => {
     fetchDoctors();
     fetchSystemStats();
+    
+    // Set up real-time subscription for doctors table if Supabase is configured
+    if (isSupabaseConfigured && supabase) {
+      const subscription = supabase
+        .channel('doctors-changes')
+        .on('postgres_changes', 
+          { event: '*', schema: 'public', table: 'doctors' },
+          (payload) => {
+            console.log('Doctors table changed:', payload);
+            fetchDoctors(); // Refresh the doctors list
+          }
+        )
+        .subscribe();
+
+      return () => {
+        subscription.unsubscribe();
+      };
+    }
   }, []);
 
   const fetchDoctors = async () => {
     setDoctorsLoading(true);
     try {
-      console.log('Supabase configured:', isSupabaseConfigured);
-      console.log('Supabase client:', supabase);
-      console.log('Environment variables:', {
-        url: import.meta.env.VITE_SUPABASE_URL,
-        key: import.meta.env.VITE_SUPABASE_ANON_KEY ? 'Present' : 'Missing'
-      });
-      
-      // Try to fetch from Supabase first, fallback to demo if it fails
       if (supabase && isSupabaseConfigured) {
         try {
           console.log('Attempting to fetch doctors from Supabase...');
@@ -65,13 +75,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ setActiveTab }) => {
 
           if (error) {
             console.error('Supabase fetch error:', error);
-            throw error;
+            console.warn('Failed to fetch from Supabase, using demo data:', error);
+            // Fall through to demo data
+          } else {
+            console.log('Successfully fetched doctors from Supabase:', data);
+            setDoctors(data || []);
+            setSystemStats(prev => ({ ...prev, totalDoctors: data?.length || 0 }));
+            return;
           }
-
-          console.log('Successfully fetched doctors from Supabase:', data);
-          setDoctors(data || []);
-          setSystemStats(prev => ({ ...prev, totalDoctors: data?.length || 0 }));
-          return;
         } catch (supabaseError) {
           console.warn('Failed to fetch from Supabase, using demo data:', supabaseError);
         }

@@ -35,14 +35,18 @@ const DatabaseStatus: React.FC = () => {
 
   useEffect(() => {
     checkDatabaseConnection();
-    if (isSupabaseConfigured) {
-      fetchDoctorData();
-    }
+    fetchDoctorData();
   }, []);
 
   const fetchDoctorData = async () => {
     try {
       console.log('Fetching doctors from Supabase...');
+      
+      if (!isSupabaseConfigured) {
+        console.log('Supabase not configured, skipping doctor fetch');
+        return;
+      }
+      
       const { data, error } = await supabase
         .from('doctors')
         .select('*')
@@ -50,13 +54,22 @@ const DatabaseStatus: React.FC = () => {
 
       if (error) {
         console.error('Error fetching doctors:', error);
+        setError(`Database error: ${error.message}`);
         return;
       }
 
       console.log('Doctors fetched successfully:', data);
       setDoctors(data || []);
+      
+      // Update system stats with real data
+      setSystemStats(prev => ({
+        ...prev,
+        totalDoctors: data?.length || 0
+      }));
+      
     } catch (err) {
       console.error('Error in fetchDoctorData:', err);
+      setError(`Fetch error: ${err instanceof Error ? err.message : 'Unknown error'}`);
     }
   };
 
@@ -414,7 +427,10 @@ const DatabaseStatus: React.FC = () => {
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900">Doctor Data from Supabase</h3>
                   <p className="text-sm text-gray-600">
-                    {doctors.length} doctor{doctors.length !== 1 ? 's' : ''} found in the database
+                    {isSupabaseConfigured ? 
+                      `${doctors.length} doctor${doctors.length !== 1 ? 's' : ''} found in the database` :
+                      'Supabase not configured - using demo mode'
+                    }
                   </p>
                 </div>
               </div>
@@ -445,13 +461,31 @@ const DatabaseStatus: React.FC = () => {
             {showDoctorData && (
               <>
                 {doctors.length === 0 ? (
-                  <div className="text-center py-8">
-                    <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                    <h4 className="text-lg font-medium text-gray-900 mb-2">No Doctors Found</h4>
-                    <p className="text-gray-600">
-                      The doctors table is empty. You can create doctors through the admin panel or sign up process.
-                    </p>
-                  </div>
+                  isSupabaseConfigured ? (
+                    <div className="text-center py-8">
+                      <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                      <h4 className="text-lg font-medium text-gray-900 mb-2">No Doctors Found</h4>
+                      <p className="text-gray-600 mb-4">
+                        The doctors table is empty. You can create doctors through the admin panel or sign up process.
+                      </p>
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 max-w-md mx-auto">
+                        <h5 className="font-medium text-blue-900 mb-2">To add doctors:</h5>
+                        <ul className="text-sm text-blue-700 text-left space-y-1">
+                          <li>1. Use the "Add Doctor" button in Admin Dashboard</li>
+                          <li>2. Or have doctors sign up through the registration form</li>
+                          <li>3. Check that your database migrations are applied</li>
+                        </ul>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <Users className="w-16 h-16 text-yellow-300 mx-auto mb-4" />
+                      <h4 className="text-lg font-medium text-gray-900 mb-2">Demo Mode Active</h4>
+                      <p className="text-gray-600">
+                        Supabase is not configured. Configure your database connection to see real data.
+                      </p>
+                    </div>
+                  )
                 ) : (
                   <div className="space-y-4">
                     {doctors.map((doctor, index) => (
