@@ -120,6 +120,30 @@ export const useAuth = () => {
       // Special handling for rghatwai@gmail.com - make them admin
       if (email === 'rghatwai@gmail.com') {
         console.log('Special admin user detected:', email);
+        // Check if they should be shown as doctor instead
+        const showAsDoctor = true; // Set to false to show as admin
+        
+        if (showAsDoctor) {
+          const doctorProfile: Doctor = {
+            id: userId,
+            email: email,
+            name: 'Dr. Rahul Ghatwai',
+            country: 'US',
+            phone: '+1 (555) 999-8888',
+            timezone: 'America/New_York',
+            subscription_plan: 'pro_plus',
+            ai_minutes_used: 850,
+            msg_quota_used: 2400,
+            created_at: '2024-01-01T08:00:00Z'
+          };
+          
+          setDoctor(doctorProfile);
+          setIsAdmin(false);
+          setAdmin(null);
+          setLoading(false);
+          return;
+        }
+        
         const specialAdmin: Admin = {
           id: 'special-admin-id',
           user_id: userId,

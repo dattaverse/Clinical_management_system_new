@@ -107,6 +107,18 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ setActiveTab }) => {
       console.log('Using demo data');
       const demoDoctors: Doctor[] = [
         {
+          id: 'rghatwai-doctor-id',
+          email: 'rghatwai@gmail.com',
+          name: 'Dr. Rahul Ghatwai',
+          country: 'US',
+          phone: '+1 (555) 999-8888',
+          timezone: 'America/New_York',
+          subscription_plan: 'pro_plus',
+          ai_minutes_used: 850,
+          msg_quota_used: 2400,
+          created_at: '2024-01-01T08:00:00Z'
+        },
+        {
           id: 'doctor-1',
           email: 'dr.smith@clinic.com',
           name: 'Dr. John Smith',
