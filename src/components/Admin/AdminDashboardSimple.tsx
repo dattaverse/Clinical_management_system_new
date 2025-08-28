@@ -117,6 +117,66 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ setActiveTab }) => {
           ai_minutes_used: 120,
           msg_quota_used: 350,
           created_at: '2024-03-10T09:15:00Z'
+        },
+        {
+          id: 'doctor-4',
+          email: 'dr.garcia@wellness.com',
+          name: 'Dr. Maria Garcia',
+          country: 'US',
+          phone: '+1 (555) 456-7890',
+          timezone: 'America/Chicago',
+          subscription_plan: 'pro',
+          ai_minutes_used: 320,
+          msg_quota_used: 890,
+          created_at: '2024-01-25T11:30:00Z'
+        },
+        {
+          id: 'doctor-5',
+          email: 'dr.patel@family.com',
+          name: 'Dr. Raj Patel',
+          country: 'US',
+          phone: '+1 (555) 234-5678',
+          timezone: 'America/Denver',
+          subscription_plan: 'pro_plus',
+          ai_minutes_used: 650,
+          msg_quota_used: 1850,
+          created_at: '2024-02-05T09:45:00Z'
+        },
+        {
+          id: 'doctor-6',
+          email: 'dr.lee@cardio.com',
+          name: 'Dr. Jennifer Lee',
+          country: 'CA',
+          phone: '+1 (604) 555-9876',
+          timezone: 'America/Vancouver',
+          subscription_plan: 'starter',
+          ai_minutes_used: 85,
+          msg_quota_used: 245,
+          created_at: '2024-03-01T14:20:00Z'
+        },
+        {
+          id: 'doctor-7',
+          email: 'dr.wilson@pediatrics.com',
+          name: 'Dr. Robert Wilson',
+          country: 'GB',
+          phone: '+44 20 7946 0958',
+          timezone: 'Europe/London',
+          subscription_plan: 'pro',
+          ai_minutes_used: 410,
+          msg_quota_used: 1150,
+          created_at: '2024-02-12T16:10:00Z'
+        },
+        {
+          id: 'doctor-8',
+          email: 'dr.chen@orthopedic.com',
+          name: 'Dr. David Chen',
+          country: 'AU',
+          phone: '+61 2 9876 5432',
+          timezone: 'Australia/Sydney',
+          subscription_plan: 'pro_plus',
+          ai_minutes_used: 720,
+          msg_quota_used: 2250,
+          created_at: '2024-01-30T08:15:00Z'
         }
       ];
       setDoctors(demoDoctors);
