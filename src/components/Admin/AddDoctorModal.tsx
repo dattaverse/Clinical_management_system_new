@@ -80,67 +80,35 @@ const AddDoctorModal: React.FC<AddDoctorModalProps> = ({ isOpen, onClose, onDoct
         return;
       }
 
-      // Create user account in Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-        email: formData.email,
-        password: password,
-        email_confirm: true, // Auto-confirm email
-        user_metadata: {
+      // Get current user's session for authorization
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('You must be logged in to create doctors');
+      }
+
+      // Call the secure Edge Function to create the doctor
+      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-doctor`;
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
           name: formData.name,
-          role: 'doctor'
-        }
+          email: formData.email,
+          phone: formData.phone,
+          country: formData.country,
+          timezone: formData.timezone,
+          subscription_plan: formData.subscription_plan,
+          password: password
+        })
       });
 
-      if (authError) {
-        throw new Error(`Failed to create user account: ${authError.message}`);
-      }
+      const result = await response.json();
 
-      if (!authData.user) {
-        throw new Error('User creation failed - no user data returned');
-      }
-
-      // Create doctor profile in database
-      const doctorData = {
-        id: authData.user.id,
-        email: formData.email,
-        name: formData.name,
-        phone: formData.phone,
-        country: formData.country,
-        timezone: formData.timezone,
-        subscription_plan: formData.subscription_plan,
-        ai_minutes_used: 0,
-        msg_quota_used: 0
-      };
-
-      // Try to create doctor using admin function first
-      let doctorError = null;
-      try {
-        const { error } = await supabase.rpc('create_doctor_as_admin', {
-          doctor_id: authData.user.id,
-          doctor_email: formData.email,
-          doctor_name: formData.name,
-          doctor_phone: formData.phone,
-          doctor_country: formData.country,
-          doctor_timezone: formData.timezone,
-          doctor_subscription_plan: formData.subscription_plan
-        });
-        doctorError = error;
-      } catch (rpcError) {
-        // Fallback to direct insert
-        const { error } = await supabase
-          .from('doctors')
-          .insert([doctorData]);
-        doctorError = error;
-      }
-
-      if (doctorError) {
-        // If doctor profile creation fails, try to delete the auth user
-        try {
-          await supabase.auth.admin.deleteUser(authData.user.id);
-        } catch (cleanupError) {
-          console.error('Failed to cleanup auth user:', cleanupError);
-        }
-        throw new Error(`Failed to create doctor profile: ${doctorError.message}`);
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to create doctor');
       }
 
       setGeneratedCredentials({
