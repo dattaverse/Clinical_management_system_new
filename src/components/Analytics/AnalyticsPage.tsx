@@ -484,7 +484,7 @@ const AnalyticsPage: React.FC = () => {
           return aptHour === hour;
         });
         
-        const displayHour = hour <= 12 ? `${hour} AM` : `${hour - 12} PM`;
+        let displayHour = hour <= 12 ? `${hour} AM` : `${hour - 12} PM`;
         if (hour === 12) displayHour = '12 PM';
         
         hourlyDistribution.push({
