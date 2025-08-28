@@ -43,7 +43,23 @@ const DatabaseStatus: React.FC = () => {
       console.log('Fetching doctors from Supabase...');
       
       if (!isSupabaseConfigured) {
-        console.log('Supabase not configured, skipping doctor fetch');
+        console.log('Supabase not configured, using demo data');
+        setError('Supabase not configured - using demo data');
+        const demoDoctors: Doctor[] = [
+          {
+            id: 'demo-1',
+            email: 'demo@healthsphere.com',
+            name: 'Dr. Demo User',
+            country: 'US',
+            phone: '+1 (555) 123-4567',
+            timezone: 'UTC',
+            subscription_plan: 'pro',
+            ai_minutes_used: 120,
+            msg_quota_used: 432,
+            created_at: new Date().toISOString()
+          }
+        ];
+        setDoctors(demoDoctors);
         return;
       }
       
@@ -55,11 +71,28 @@ const DatabaseStatus: React.FC = () => {
       if (error) {
         console.error('Error fetching doctors:', error);
         setError(`Database error: ${error.message}`);
+        // Still show demo data as fallback
+        const demoDoctors: Doctor[] = [
+          {
+            id: 'demo-1',
+            email: 'demo@healthsphere.com',
+            name: 'Dr. Demo User (Fallback)',
+            country: 'US',
+            phone: '+1 (555) 123-4567',
+            timezone: 'UTC',
+            subscription_plan: 'pro',
+            ai_minutes_used: 120,
+            msg_quota_used: 432,
+            created_at: new Date().toISOString()
+          }
+        ];
+        setDoctors(demoDoctors);
         return;
       }
 
       console.log('Doctors fetched successfully:', data);
       setDoctors(data || []);
+      setError(''); // Clear any previous errors
       
       // Update system stats with real data
       setSystemStats(prev => ({
@@ -70,6 +103,22 @@ const DatabaseStatus: React.FC = () => {
     } catch (err) {
       console.error('Error in fetchDoctorData:', err);
       setError(`Fetch error: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      // Show demo data as fallback
+      const demoDoctors: Doctor[] = [
+        {
+          id: 'demo-1',
+          email: 'demo@healthsphere.com',
+          name: 'Dr. Demo User (Error Fallback)',
+          country: 'US',
+          phone: '+1 (555) 123-4567',
+          timezone: 'UTC',
+          subscription_plan: 'pro',
+          ai_minutes_used: 120,
+          msg_quota_used: 432,
+          created_at: new Date().toISOString()
+        }
+      ];
+      setDoctors(demoDoctors);
     }
   };
 

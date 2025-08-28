@@ -117,6 +117,32 @@ export const useAuth = () => {
         return;
       }
 
+      // Special handling for rghatwai@gmail.com - make them admin
+      if (email === 'rghatwai@gmail.com') {
+        console.log('Special admin user detected:', email);
+        const specialAdmin: Admin = {
+          id: 'special-admin-id',
+          user_id: userId,
+          email: email,
+          name: 'Dr. Rahul Ghatwai',
+          role: 'super_admin',
+          permissions: {
+            view_all: true,
+            manage_doctors: true,
+            view_logs: true,
+            compliance: true
+          },
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+        
+        setAdmin(specialAdmin);
+        setIsAdmin(true);
+        setDoctor(null);
+        setLoading(false);
+        return;
+      }
+
       // Check if user is admin in database
       const { data: adminData } = await supabase
         .from('admins')
@@ -168,8 +194,9 @@ export const useAuth = () => {
       // Try to insert into database, but don't fail if it doesn't work
       try {
         await supabase.from('doctors').insert([defaultDoctor]);
+        console.log('Doctor profile created in database');
       } catch (insertError) {
-        console.log('Could not insert doctor profile, using local data');
+        console.log('Could not insert doctor profile, using local data:', insertError);
       }
 
       setDoctor(defaultDoctor);

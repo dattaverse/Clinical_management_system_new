@@ -12,7 +12,9 @@ import {
   TrendingUp,
   CheckCircle,
   Database,
-  MapPin
+  MapPin,
+  AlertCircle,
+  RefreshCw
 } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
 import type { Doctor } from '../../types';
@@ -28,6 +30,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ setActiveTab }) => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [doctorsLoading, setDoctorsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [error, setError] = useState('');
   const [systemStats, setSystemStats] = useState({
     totalDoctors: 0,
     totalPatients: 0,
@@ -65,6 +68,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ setActiveTab }) => {
   const fetchDoctors = async () => {
     setDoctorsLoading(true);
     try {
+      console.log('=== FETCHING DOCTORS DEBUG ===');
+      console.log('isSupabaseConfigured:', isSupabaseConfigured);
+      console.log('supabase client exists:', !!supabase);
+      
       if (supabase && isSupabaseConfigured) {
         try {
           console.log('Attempting to fetch doctors from Supabase...');
@@ -73,21 +80,27 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ setActiveTab }) => {
             .select('*')
             .order('created_at', { ascending: false });
 
+          console.log('Supabase response - data:', data);
+          console.log('Supabase response - error:', error);
+          
           if (error) {
             console.error('Supabase fetch error:', error);
-            console.warn('Failed to fetch from Supabase, using demo data:', error);
-            // Fall through to demo data
+            setError(`Database error: ${error.message}`);
+            // Still fall through to demo data
           } else {
             console.log('Successfully fetched doctors from Supabase:', data);
             setDoctors(data || []);
             setSystemStats(prev => ({ ...prev, totalDoctors: data?.length || 0 }));
+            setError(''); // Clear any previous errors
             return;
           }
         } catch (supabaseError) {
           console.warn('Failed to fetch from Supabase, using demo data:', supabaseError);
+          setError(`Connection error: ${supabaseError instanceof Error ? supabaseError.message : 'Unknown error'}`);
         }
       } else {
         console.warn('Supabase not configured, using demo data');
+        setError('Supabase not configured - using demo data');
       }
 
       // Fallback to demo data
@@ -409,6 +422,18 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ setActiveTab }) => {
       </div>
 
       {/* Search and Filters */}
+      {error && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-6">
+          <div className="flex items-center space-x-2">
+            <AlertCircle className="w-5 h-5 text-yellow-600" />
+            <div>
+              <h3 className="font-medium text-yellow-800">Database Status</h3>
+              <p className="text-sm text-yellow-700">{error}</p>
+            </div>
+          </div>
+        </div>
+      )}
+      
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
         <div className="flex items-center justify-between">
           <div className="relative flex-1 max-w-md">
@@ -420,6 +445,21 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ setActiveTab }) => {
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
+          </div>
+          <div className="flex items-center space-x-3">
+            <button
+              onClick={fetchDoctors}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+            >
+              <RefreshCw className="w-4 h-4" />
+              <span>Refresh</span>
+            </button>
+            <div className="text-sm text-gray-600">
+              {isSupabaseConfigured ? 
+                `Found ${filteredDoctors.length} doctors` : 
+                'Demo mode'
+              }
+            </div>
           </div>
         </div>
       </div>
