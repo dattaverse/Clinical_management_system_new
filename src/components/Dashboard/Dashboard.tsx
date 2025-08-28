@@ -7,7 +7,7 @@ import UpcomingAppointments from './UpcomingAppointments';
 import AIInsights from './AIInsights';
 import { useAuth } from '../../hooks/useAuth';
 import { useClinicContext } from '../../contexts/ClinicContext';
-import AdminDashboard from '../Admin/AdminDashboard';
+import AdminDashboard from '../Admin/AdminDashboardSimple';
 import CreateClinicModal from '../Clinics/CreateClinicModal';
 
 interface DashboardProps {

@@ -5,6 +5,7 @@ import LandingPage from './components/Landing/LandingPage';
 import Sidebar from './components/Layout/Sidebar';
 import Header from './components/Layout/Header';
 import Dashboard from './components/Dashboard/Dashboard';
+import AdminDashboard from './components/Admin/AdminDashboardSimple';
 import PatientList from './components/Patients/PatientList';
 import DatabaseStatus from './components/Database/DatabaseStatus';
 import ClinicList from './components/Clinics/ClinicList';
@@ -86,6 +87,8 @@ const App: React.FC = React.memo(() => {
     switch (activeTab) {
       case 'dashboard':
         return <Dashboard activeTab={activeTab} setActiveTab={setActiveTab} />;
+      case 'admin':
+        return <AdminDashboard activeTab={activeTab} setActiveTab={setActiveTab} />;
       case 'clinics':
         return <ClinicList />;
       case 'patients':

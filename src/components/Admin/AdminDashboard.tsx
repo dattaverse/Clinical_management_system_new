@@ -1,32 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Users, 
+import {
+  Users,
   Building2, 
   Calendar, 
-  FileText, 
   Phone, 
   Shield, 
   BarChart3, 
   Plus,
   Search,
-  Filter,
-  Download,
-  Eye,
-  Edit,
-  Trash2,
   MoreVertical,
-  Activity,
   TrendingUp,
-  AlertTriangle,
   CheckCircle,
-  Database,
-  ArrowLeft,
-  MapPin,
-  Clock,
-  User
+  Database
 } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
-import type { Doctor, Admin, VoiceAgentLog, ComplianceReport, Clinic, Patient } from '../../types';
+import type { Doctor } from '../../types';
 import AddDoctorModal from './AddDoctorModal';
 
 interface AdminDashboardProps {
@@ -36,14 +24,8 @@ interface AdminDashboardProps {
 
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeTab, setActiveTab }) => {
   const [doctors, setDoctors] = useState<Doctor[]>([]);
-  const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
-  const [selectedClinic, setSelectedClinic] = useState<Clinic | null>(null);
-  const [doctorClinics, setDoctorClinics] = useState<Clinic[]>([]);
-  const [clinicPatients, setClinicPatients] = useState<Patient[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [doctorsLoading, setDoctorsLoading] = useState(false);
-  const [clinicsLoading, setClinicsLoading] = useState(false);
-  const [patientsLoading, setPatientsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [systemStats, setSystemStats] = useState({
     totalDoctors: 0,
@@ -64,9 +46,32 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeTab, setActiveTab
   const fetchDoctors = async () => {
     setDoctorsLoading(true);
     try {
-      if (!isSupabaseConfigured) {
-        // Demo doctors data
-        const demoDoctors: Doctor[] = [
+      console.log('Supabase configured:', isSupabaseConfigured);
+      console.log('Supabase client:', supabase);
+      
+      // Try to fetch from Supabase first, fallback to demo if it fails
+      try {
+        console.log('Attempting to fetch doctors from Supabase...');
+        const { data, error } = await supabase
+          .from('doctors')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          console.error('Supabase fetch error:', error);
+          throw error;
+        }
+
+        console.log('Successfully fetched doctors from Supabase:', data);
+        setDoctors(data || []);
+        return;
+      } catch (supabaseError) {
+        console.warn('Failed to fetch from Supabase, using demo data:', supabaseError);
+      }
+
+      // Fallback to demo data
+      console.log('Using demo data');
+      const demoDoctors: Doctor[] = [
           {
             id: 'doctor-1',
             email: 'dr.smith@clinic.com',
@@ -141,17 +146,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ activeTab, setActiveTab
           }
         ];
         setDoctors(demoDoctors);
-        setDoctorsLoading(false);
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from('doctors')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setDoctors(data || []);
+      setDoctorsLoading(false);
     } catch (error) {
       console.error('Error fetching doctors:', error);
       setDoctors([]);
