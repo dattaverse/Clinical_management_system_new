@@ -42,6 +42,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ setActiveTab }) => {
     analyticsScore: 92
   });
 
+  // Store created doctors in component state for demo mode
+  const [createdDoctors, setCreatedDoctors] = useState<Doctor[]>([]);
+
   useEffect(() => {
     fetchDoctors();
     fetchSystemStats();

@@ -1,404 +1,613 @@
-import React, { useState } from 'react';
-import { X, User, Mail, Phone, Globe, Building2, Save, Eye, EyeOff } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import {
+  Users,
+  Building2, 
+  Calendar, 
+  Phone, 
+  Shield, 
+  BarChart3, 
+  Plus,
+  Search,
+  MoreVertical,
+  TrendingUp,
+  CheckCircle,
+  Database,
+  MapPin,
+  AlertCircle,
+  RefreshCw
+} from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
+import type { Doctor } from '../../types';
+import AddDoctorModal from './AddDoctorModal';
 
-interface AddDoctorModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onDoctorAdded: () => void;
+interface AdminDashboardProps {
+  activeTab: string;
+  setActiveTab: (tab: string) => void;
 }
 
-const AddDoctorModal: React.FC<AddDoctorModalProps> = ({ isOpen, onClose, onDoctorAdded }) => {
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    country: 'US',
-    timezone: 'UTC',
-    subscription_plan: 'starter' as 'starter' | 'pro' | 'pro_plus',
-    generatePassword: true,
-    customPassword: ''
-  });
-  const [loading, setLoading] = useState(false);
+const AdminDashboard: React.FC<AdminDashboardProps> = ({ setActiveTab }) => {
+  const [doctors, setDoctors] = useState<Doctor[]>([]);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [doctorsLoading, setDoctorsLoading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [generatedCredentials, setGeneratedCredentials] = useState<{email: string, password: string} | null>(null);
+  const [systemStats, setSystemStats] = useState({
+    totalDoctors: 0,
+    totalPatients: 0,
+    totalAppointments: 0,
+    totalClinics: 0,
+    activeVoiceCalls: 0,
+    complianceScore: 95,
+    databaseHealth: 'excellent',
+    analyticsScore: 92
+  });
 
-  const countries = [
-    { code: 'US', name: 'United States' },
-    { code: 'CA', name: 'Canada' },
-    { code: 'GB', name: 'United Kingdom' },
-    { code: 'AU', name: 'Australia' },
-    { code: 'IN', name: 'India' },
-    { code: 'DE', name: 'Germany' },
-    { code: 'FR', name: 'France' },
-    { code: 'JP', name: 'Japan' }
-  ];
+  useEffect(() => {
+    fetchDoctors();
+    fetchSystemStats();
+    
+    // Set up real-time subscription for doctors table if Supabase is configured
+    if (isSupabaseConfigured && supabase) {
+      const subscription = supabase
+        .channel('doctors-changes')
+        .on('postgres_changes', 
+          { event: '*', schema: 'public', table: 'doctors' },
+          (payload) => {
+            console.log('Doctors table changed:', payload);
+            fetchDoctors(); // Refresh the doctors list
+          }
+        )
+        .subscribe();
 
-  const timezones = [
-    'UTC',
-    'America/New_York',
-    'America/Chicago',
-    'America/Denver',
-    'America/Los_Angeles',
-    'America/Toronto',
-    'Europe/London',
-    'Europe/Paris',
-    'Europe/Berlin',
-    'Asia/Tokyo',
-    'Asia/Kolkata',
-    'Australia/Sydney'
-  ];
-
-  const generatePassword = () => {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
-    let password = '';
-    for (let i = 0; i < 12; i++) {
-      password += chars.charAt(Math.floor(Math.random() * chars.length));
+      return () => {
+        subscription.unsubscribe();
+      };
     }
-    return password;
+  }, []);
+
+  const fetchDoctors = async () => {
+    setDoctorsLoading(true);
+    try {
+      console.log('=== FETCHING DOCTORS DEBUG ===');
+      console.log('isSupabaseConfigured:', isSupabaseConfigured);
+      console.log('supabase client exists:', !!supabase);
+      
+      if (supabase && isSupabaseConfigured) {
+        try {
+          console.log('Attempting to fetch doctors from Supabase...');
+          const { data, error } = await supabase
+            .from('doctors')
+            .select('*')
+            .order('created_at', { ascending: false });
+
+          console.log('Supabase response - data:', data);
+          console.log('Supabase response - error:', error);
+          
+          if (error) {
+            console.error('Supabase fetch error:', error);
+            setError(`Database error: ${error.message}`);
+            // Still fall through to demo data
+          } else {
+            console.log('Successfully fetched doctors from Supabase:', data);
+            setDoctors(data || []);
+            setSystemStats(prev => ({ ...prev, totalDoctors: data?.length || 0 }));
+            setError(''); // Clear any previous errors
+            return;
+          }
+        } catch (supabaseError) {
+          console.warn('Failed to fetch from Supabase, using demo data:', supabaseError);
+          setError(`Connection error: ${supabaseError instanceof Error ? supabaseError.message : 'Unknown error'}`);
+        // Fall back to demo data but include any newly created doctors
+        const demoDoctors = getDemoDoctors();
+        setDoctors(demoDoctors);
+        setSystemStats(prev => ({ ...prev, totalDoctors: demoDoctors.length }));
+        return;
+      } else {
+        console.warn('Supabase not configured, using demo data');
+        setError('Supabase not configured - using demo data');
+      }
+
+      // Fallback to demo data
+      console.log('Using demo data');
+      const demoDoctors = getDemoDoctors();
+      setDoctors(demoDoctors);
+      setSystemStats(prev => ({ ...prev, totalDoctors: demoDoctors.length }));
+    } catch (error) {
+      console.error('Error fetching doctors:', error);
+      setDoctors([]);
+    } finally {
+      setDoctorsLoading(false);
+    }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
-    setSuccess('');
+  const getDemoDoctors = (): Doctor[] => {
+    return [
+        {
+          id: 'rghatwai-doctor-id',
+          email: 'rghatwai@gmail.com',
+          name: 'Dr. Rahul Ghatwai',
+          country: 'US',
+          phone: '+1 (555) 999-8888',
+          timezone: 'America/New_York',
+          subscription_plan: 'pro_plus',
+          ai_minutes_used: 850,
+          msg_quota_used: 2400,
+          created_at: '2024-01-01T08:00:00Z'
+        },
+        {
+          id: 'doctor-1',
+          email: 'dr.smith@clinic.com',
+          name: 'Dr. John Smith',
+          country: 'US',
+          phone: '+1 (555) 123-4567',
+          timezone: 'America/New_York',
+          subscription_plan: 'pro',
+          ai_minutes_used: 450,
+          msg_quota_used: 1200,
+          created_at: '2024-01-15T10:00:00Z'
+        },
+        {
+          id: 'doctor-2',
+          email: 'dr.johnson@medical.com',
+          name: 'Dr. Sarah Johnson',
+          country: 'US',
+          phone: '+1 (555) 987-6543',
+          timezone: 'America/Los_Angeles',
+          subscription_plan: 'pro_plus',
+          ai_minutes_used: 780,
+          msg_quota_used: 2100,
+          created_at: '2024-02-20T14:30:00Z'
+        },
+        {
+          id: 'doctor-3',
+          email: 'dr.brown@health.com',
+          name: 'Dr. Michael Brown',
+          country: 'CA',
+          phone: '+1 (416) 555-0123',
+          timezone: 'America/Toronto',
+          subscription_plan: 'starter',
+          ai_minutes_used: 120,
+          msg_quota_used: 350,
+          created_at: '2024-03-10T09:15:00Z'
+        },
+        {
+          id: 'doctor-4',
+          email: 'dr.garcia@wellness.com',
+          name: 'Dr. Maria Garcia',
+          country: 'US',
+          phone: '+1 (555) 456-7890',
+          timezone: 'America/Chicago',
+          subscription_plan: 'pro',
+          ai_minutes_used: 320,
+          msg_quota_used: 890,
+          created_at: '2024-01-25T11:30:00Z'
+        },
+        {
+          id: 'doctor-5',
+          email: 'dr.patel@family.com',
+          name: 'Dr. Raj Patel',
+          country: 'US',
+          phone: '+1 (555) 234-5678',
+          timezone: 'America/Denver',
+          subscription_plan: 'pro_plus',
+          ai_minutes_used: 650,
+          msg_quota_used: 1850,
+          created_at: '2024-02-05T09:45:00Z'
+        },
+        {
+          id: 'doctor-6',
+          email: 'dr.lee@cardio.com',
+          name: 'Dr. Jennifer Lee',
+          country: 'CA',
+          phone: '+1 (604) 555-9876',
+          timezone: 'America/Vancouver',
+          subscription_plan: 'starter',
+          ai_minutes_used: 85,
+          msg_quota_used: 245,
+          created_at: '2024-03-01T14:20:00Z'
+        },
+        {
+          id: 'doctor-7',
+          email: 'dr.wilson@pediatrics.com',
+          name: 'Dr. Robert Wilson',
+          country: 'GB',
+          phone: '+44 20 7946 0958',
+          timezone: 'Europe/London',
+          subscription_plan: 'pro',
+          ai_minutes_used: 410,
+          msg_quota_used: 1150,
+          created_at: '2024-02-12T16:10:00Z'
+        },
+        {
+          id: 'doctor-8',
+          email: 'dr.chen@orthopedic.com',
+          name: 'Dr. David Chen',
+          country: 'AU',
+          phone: '+61 2 9876 5432',
+          timezone: 'Australia/Sydney',
+          subscription_plan: 'pro_plus',
+          ai_minutes_used: 720,
+          msg_quota_used: 2250,
+          created_at: '2024-01-30T08:15:00Z'
+        }
+      ];
+      setDoctors(demoDoctors);
+      setSystemStats(prev => ({ ...prev, totalDoctors: demoDoctors.length }));
+    } catch (error) {
+      console.error('Error fetching doctors:', error);
+      setDoctors([]);
+    } finally {
+      setDoctorsLoading(false);
+    }
+  };
 
+  const fetchSystemStats = async () => {
     try {
-      const password = formData.generatePassword ? generatePassword() : formData.customPassword;
-
       if (!isSupabaseConfigured) {
-        // Demo mode
-        setGeneratedCredentials({
-          email: formData.email,
-          password: password
-        });
-        setSuccess(`Demo: Doctor ${formData.name} would be created with email: ${formData.email}`);
-        setLoading(false);
+        setSystemStats(prev => ({
+          ...prev,
+          totalPatients: 1247,
+          totalAppointments: 45,
+          totalClinics: 12,
+          activeVoiceCalls: 2
+        }));
         return;
       }
 
-      // Get current user's session for authorization
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        throw new Error('You must be logged in to create doctors');
-      }
+      // Fetch real stats from Supabase
+      const [patientsRes, appointmentsRes, clinicsRes] = await Promise.all([
+        supabase.from('patients').select('*', { count: 'exact', head: true }),
+        supabase.from('appointments').select('*', { count: 'exact', head: true }),
+        supabase.from('clinics').select('*', { count: 'exact', head: true })
+      ]);
 
-      // Call the secure Edge Function to create the doctor
-      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-doctor`;
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          name: formData.name,
-          email: formData.email,
-          phone: formData.phone,
-          country: formData.country,
-          timezone: formData.timezone,
-          subscription_plan: formData.subscription_plan,
-          password: password
-        })
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to create doctor');
-      }
-
-      setGeneratedCredentials({
-        email: formData.email,
-        password: password
-      });
-
-      setSuccess(`Doctor ${formData.name} created successfully!`);
-      onDoctorAdded();
-
-      // Reset form
-      setFormData({
-        name: '',
-        email: '',
-        phone: '',
-        country: 'US',
-        timezone: 'UTC',
-        subscription_plan: 'starter',
-        generatePassword: true,
-        customPassword: ''
-      });
-
-    } catch (err: any) {
-      console.error('Error creating doctor:', err);
-      setError(err.message || 'Failed to create doctor');
-    } finally {
-      setLoading(false);
+      setSystemStats(prev => ({
+        ...prev,
+        totalPatients: patientsRes.count || 0,
+        totalAppointments: appointmentsRes.count || 0,
+        totalClinics: clinicsRes.count || 0,
+        activeVoiceCalls: 2
+      }));
+    } catch (error) {
+      console.error('Error fetching system stats:', error);
     }
   };
 
-  const handleClose = () => {
-    setFormData({
-      name: '',
-      email: '',
-      phone: '',
-      country: 'US',
-      timezone: 'UTC',
-      subscription_plan: 'starter',
-      generatePassword: true,
-      customPassword: ''
+  const filteredDoctors = doctors.filter((doctor: Doctor) =>
+    doctor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    doctor.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    doctor.country.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const formatDate = (dateStr: string) => {
+    return new Date(dateStr).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
     });
-    setError('');
-    setSuccess('');
-    setGeneratedCredentials(null);
-    onClose();
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="p-6 border-b border-gray-200">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold text-gray-900">Add New Doctor</h2>
-            <button
-              onClick={handleClose}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-            >
-              <X className="w-5 h-5" />
-            </button>
+    <div className="p-6 bg-gray-50 min-h-screen">
+      {/* Header */}
+      <div className="mb-8">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
+            <p className="text-gray-600 mt-1">
+              Manage doctors, monitor system health, and oversee operations
+            </p>
+          </div>
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-6 py-3 rounded-xl hover:from-blue-600 hover:to-indigo-700 transition-all duration-200 flex items-center space-x-2 font-medium shadow-lg"
+          >
+            <Plus className="w-5 h-5" />
+            <span>Add Doctor</span>
+          </button>
+        </div>
+
+        {/* System Overview Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          {/* Database Status Card */}
+          <div 
+            onClick={() => setActiveTab('database-status')}
+            className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-all duration-200 cursor-pointer"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl flex items-center justify-center">
+                <Database className="w-6 h-6 text-white" />
+              </div>
+              <div className="flex items-center space-x-2">
+                <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                <span className="text-sm font-medium text-green-600">Healthy</span>
+              </div>
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-gray-900 mb-2">Database Status</h3>
+              <p className="text-sm text-gray-600 mb-3">All systems operational</p>
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div>
+                  <p className="text-gray-500">Tables</p>
+                  <p className="font-semibold text-gray-900">11 Active</p>
+                </div>
+                <div>
+                  <p className="text-gray-500">Uptime</p>
+                  <p className="font-semibold text-gray-900">99.9%</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Compliance Card */}
+          <div 
+            onClick={() => setActiveTab('compliance')}
+            className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-all duration-200 cursor-pointer"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl flex items-center justify-center">
+                <Shield className="w-6 h-6 text-white" />
+              </div>
+              <div className="flex items-center space-x-2">
+                <CheckCircle className="w-5 h-5 text-green-600" />
+                <span className="text-sm font-medium text-green-600">Compliant</span>
+              </div>
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-gray-900 mb-2">Compliance</h3>
+              <p className="text-sm text-gray-600 mb-3">HIPAA & Security monitoring</p>
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div>
+                  <p className="text-gray-500">Score</p>
+                  <p className="font-semibold text-green-600">{systemStats.complianceScore}%</p>
+                </div>
+                <div>
+                  <p className="text-gray-500">Issues</p>
+                  <p className="font-semibold text-gray-900">0 Critical</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Analytics Card */}
+          <div 
+            onClick={() => setActiveTab('analytics')}
+            className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-all duration-200 cursor-pointer"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl flex items-center justify-center">
+                <BarChart3 className="w-6 h-6 text-white" />
+              </div>
+              <div className="flex items-center space-x-2">
+                <TrendingUp className="w-5 h-5 text-green-600" />
+                <span className="text-sm font-medium text-green-600">+12%</span>
+              </div>
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-gray-900 mb-2">Analytics</h3>
+              <p className="text-sm text-gray-600 mb-3">Performance insights</p>
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div>
+                  <p className="text-gray-500">Score</p>
+                  <p className="font-semibold text-purple-600">{systemStats.analyticsScore}%</p>
+                </div>
+                <div>
+                  <p className="text-gray-500">Growth</p>
+                  <p className="font-semibold text-gray-900">+12%</p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          {/* Basic Information */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-medium text-gray-900">Basic Information</h3>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Full Name *
-              </label>
-              <div className="relative">
-                <User className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="pl-10 w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Dr. John Smith"
-                  required
-                />
+        {/* System Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                <Users className="w-5 h-5 text-blue-600" />
               </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Email Address *
-              </label>
-              <div className="relative">
-                <Mail className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
-                <input
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="pl-10 w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="doctor@example.com"
-                  required
-                />
-              </div>
-              <p className="text-xs text-gray-500 mt-1">This will be used as the login username</p>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Phone Number *
-              </label>
-              <div className="relative">
-                <Phone className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
-                <input
-                  type="tel"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  className="pl-10 w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="+1 (555) 123-4567"
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Country
-                </label>
-                <div className="relative">
-                  <Globe className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
-                  <select
-                    value={formData.country}
-                    onChange={(e) => setFormData({ ...formData, country: e.target.value })}
-                    className="pl-10 w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    {countries.map(country => (
-                      <option key={country.code} value={country.code}>
-                        {country.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Timezone
-                </label>
-                <select
-                  value={formData.timezone}
-                  onChange={(e) => setFormData({ ...formData, timezone: e.target.value })}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  {timezones.map(tz => (
-                    <option key={tz} value={tz}>{tz}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Subscription Plan
-              </label>
-              <div className="relative">
-                <Building2 className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
-                <select
-                  value={formData.subscription_plan}
-                  onChange={(e) => setFormData({ ...formData, subscription_plan: e.target.value as any })}
-                  className="pl-10 w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value="starter">Starter Plan</option>
-                  <option value="pro">Pro Plan</option>
-                  <option value="pro_plus">Pro Plus Plan</option>
-                </select>
+                <p className="text-2xl font-bold text-gray-900">{systemStats.totalDoctors}</p>
+                <p className="text-sm text-gray-600">Total Doctors</p>
               </div>
             </div>
           </div>
-
-          {/* Password Settings */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-medium text-gray-900">Login Credentials</h3>
-            
-            <div className="space-y-3">
-              <div className="flex items-center space-x-3">
-                <input
-                  type="radio"
-                  id="generatePassword"
-                  name="passwordOption"
-                  checked={formData.generatePassword}
-                  onChange={() => setFormData({ ...formData, generatePassword: true })}
-                  className="w-4 h-4 text-blue-600 focus:ring-blue-500"
-                />
-                <label htmlFor="generatePassword" className="text-sm font-medium text-gray-700">
-                  Generate secure password automatically
-                </label>
+          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                <Users className="w-5 h-5 text-green-600" />
               </div>
-
-              <div className="flex items-center space-x-3">
-                <input
-                  type="radio"
-                  id="customPassword"
-                  name="passwordOption"
-                  checked={!formData.generatePassword}
-                  onChange={() => setFormData({ ...formData, generatePassword: false })}
-                  className="w-4 h-4 text-blue-600 focus:ring-blue-500"
-                />
-                <label htmlFor="customPassword" className="text-sm font-medium text-gray-700">
-                  Set custom password
-                </label>
+              <div>
+                <p className="text-2xl font-bold text-gray-900">{systemStats.totalPatients}</p>
+                <p className="text-sm text-gray-600">Total Patients</p>
               </div>
+            </div>
+          </div>
+          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                <Building2 className="w-5 h-5 text-purple-600" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-gray-900">{systemStats.totalClinics}</p>
+                <p className="text-sm text-gray-600">Total Clinics</p>
+              </div>
+            </div>
+          </div>
+          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
+                <Phone className="w-5 h-5 text-orange-600" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold text-gray-900">{systemStats.activeVoiceCalls}</p>
+                <p className="text-sm text-gray-600">Active Calls</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
-              {!formData.generatePassword && (
-                <div className="ml-7">
-                  <div className="relative">
-                    <input
-                      type={showPassword ? 'text' : 'password'}
-                      value={formData.customPassword}
-                      onChange={(e) => setFormData({ ...formData, customPassword: e.target.value })}
-                      className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Enter password (min 8 characters)"
-                      minLength={8}
-                      required={!formData.generatePassword}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                    >
-                      {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                    </button>
+      {/* Search and Filters */}
+      {error && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-6">
+          <div className="flex items-center space-x-2">
+            <AlertCircle className="w-5 h-5 text-yellow-600" />
+            <div>
+              <h3 className="font-medium text-yellow-800">Database Status</h3>
+              <p className="text-sm text-yellow-700">{error}</p>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
+        <div className="flex items-center justify-between">
+          <div className="relative flex-1 max-w-md">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <input
+              type="text"
+              placeholder="Search doctors by name, email, or country..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+          <div className="flex items-center space-x-3">
+            <button
+              onClick={fetchDoctors}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+            >
+              <RefreshCw className="w-4 h-4" />
+              <span>Refresh</span>
+            </button>
+            <div className="text-sm text-gray-600">
+              {isSupabaseConfigured ? 
+                `Found ${filteredDoctors.length} doctors` : 
+                'Demo mode'
+              }
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Doctors Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+        {doctorsLoading ? (
+          <div className="col-span-full text-center py-12">
+            <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading doctors...</p>
+          </div>
+        ) : filteredDoctors.length === 0 ? (
+          searchTerm ? (
+            <div className="col-span-full text-center py-12">
+              <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Users className="w-10 h-10 text-gray-400" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">No doctors found</h3>
+              <p className="text-gray-600 mb-6">Try adjusting your search criteria.</p>
+            </div>
+          ) : (
+            <div className="col-span-full text-center py-12">
+              <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Users className="w-10 h-10 text-gray-400" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">No doctors found</h3>
+              <p className="text-gray-600 mb-6">Try adjusting your search criteria.</p>
+            </div>
+          )
+        ) : (
+            filteredDoctors.map((doctor) => (
+              <div 
+                key={doctor.id} 
+                className="bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200 cursor-pointer overflow-hidden"
+              >
+                <div className="p-6">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center">
+                        <Users className="w-6 h-6 text-white" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-bold text-gray-900">{doctor.name}</h3>
+                        <p className="text-sm text-gray-500">
+                          {doctor.email}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="relative">
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          // Handle dropdown menu
+                        }}
+                        className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                      >
+                        <MoreVertical className="w-4 h-4 text-gray-400" />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3 mb-4">
+                    <div className="flex items-center space-x-2 text-gray-600">
+                      <Phone className="w-4 h-4" />
+                      <span className="text-sm">{doctor.phone}</span>
+                    </div>
+                    <div className="flex items-center space-x-2 text-gray-600">
+                      <MapPin className="w-4 h-4" />
+                      <span className="text-sm">{doctor.country} • {doctor.timezone}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between mb-4">
+                    <div className={`px-3 py-1 rounded-full text-xs font-medium ${
+                      doctor.subscription_plan === 'pro_plus' ? 'bg-purple-100 text-purple-800' :
+                      doctor.subscription_plan === 'pro' ? 'bg-blue-100 text-blue-800' :
+                      'bg-gray-100 text-gray-800'
+                    }`}>
+                      {doctor.subscription_plan.replace('_', ' ').toUpperCase()}
+                    </div>
+                    <div className="text-right text-xs text-gray-500">
+                      Joined {formatDate(doctor.created_at)}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 mb-4 text-sm">
+                    <div className="bg-blue-50 p-2 rounded-lg">
+                      <p className="text-blue-800 font-medium">AI Minutes</p>
+                      <p className="text-blue-600">{doctor.ai_minutes_used}</p>
+                    </div>
+                    <div className="bg-green-50 p-2 rounded-lg">
+                      <p className="text-green-800 font-medium">Messages</p>
+                      <p className="text-green-600">{doctor.msg_quota_used}</p>
+                    </div>
+                  </div>
+
+                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-3 border border-blue-200">
+                    <p className="text-sm text-blue-800 font-medium">Click to view details →</p>
                   </div>
                 </div>
-              )}
-            </div>
-          </div>
-
-          {/* Error/Success Messages */}
-          {error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-              <p className="text-red-800 text-sm">{error}</p>
-            </div>
-          )}
-
-          {success && (
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-              <p className="text-green-800 text-sm">{success}</p>
-            </div>
-          )}
-
-          {/* Generated Credentials Display */}
-          {generatedCredentials && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <h4 className="font-medium text-blue-900 mb-2">Login Credentials Created</h4>
-              <div className="space-y-2 text-sm">
-                <div>
-                  <span className="font-medium text-blue-800">Email:</span>
-                  <span className="ml-2 font-mono text-blue-700">{generatedCredentials.email}</span>
-                </div>
-                <div>
-                  <span className="font-medium text-blue-800">Password:</span>
-                  <span className="ml-2 font-mono text-blue-700">{generatedCredentials.password}</span>
-                </div>
               </div>
-              <p className="text-xs text-blue-600 mt-2">
-                ⚠️ Please save these credentials securely and share them with the doctor.
-              </p>
-            </div>
+            ))
           )}
-
-          {/* Form Actions */}
-          <div className="flex items-center justify-end space-x-4 pt-4 border-t border-gray-200">
-            <button
-              type="button"
-              onClick={handleClose}
-              className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center space-x-2"
-            >
-              <Save className="w-4 h-4" />
-              <span>{loading ? 'Creating...' : 'Create Doctor'}</span>
-            </button>
-          </div>
-        </form>
       </div>
+
+      {/* Add Doctor Modal */}
+      {showAddModal && (
+        <AddDoctorModal
+         isOpen={showAddModal}
+          onClose={() => setShowAddModal(false)}
+         onDoctorAdded={() => {
+          console.log('Doctor added callback triggered, refreshing data...');
+           fetchDoctors();
+          fetchSystemStats();
+           setShowAddModal(false);
+         }}
+        />
+      )}
     </div>
   );
 };
 
-export default AddDoctorModal;
+export default AdminDashboard;
