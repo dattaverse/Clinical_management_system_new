@@ -421,25 +421,90 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ setActiveTab }) => {
             <p className="text-gray-600">Loading doctors...</p>
           </div>
         ) : filteredDoctors.length === 0 ? (
-          <div className="col-span-full text-center py-12">
-            <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Users className="w-10 h-10 text-gray-400" />
+          searchTerm ? (
+            <div className="col-span-full text-center py-12">
+              <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Users className="w-10 h-10 text-gray-400" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">No doctors found</h3>
+              <p className="text-gray-600 mb-6">Try adjusting your search criteria.</p>
             </div>
-            <h3 className="text-xl font-bold text-gray-900 mb-2">No doctors found</h3>
-            <p className="text-gray-600 mb-6">
-              {searchTerm ? 'Try adjusting your search criteria.' : 'Get started by adding your first doctor.'}
-            </p>
-            {!searchTerm && (
-              <button
-                onClick={() => setShowAddModal(true)}
-                className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white px-6 py-3 rounded-xl hover:from-blue-600 hover:to-indigo-700 transition-all duration-200 font-medium shadow-lg"
+          ) : (
+            doctors.map((doctor) => (
+              <div 
+                key={doctor.id} 
+                className="bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200 cursor-pointer overflow-hidden"
               >
-                Add First Doctor
-              </button>
-            )}
-          </div>
+                <div className="p-6">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center">
+                        <Users className="w-6 h-6 text-white" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-bold text-gray-900">{doctor.name}</h3>
+                        <p className="text-sm text-gray-500">
+                          {doctor.email}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="relative">
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          // Handle dropdown menu
+                        }}
+                        className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                      >
+                        <MoreVertical className="w-4 h-4 text-gray-400" />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3 mb-4">
+                    <div className="flex items-center space-x-2 text-gray-600">
+                      <Phone className="w-4 h-4" />
+                      <span className="text-sm">{doctor.phone}</span>
+                    </div>
+                    <div className="flex items-center space-x-2 text-gray-600">
+                      <MapPin className="w-4 h-4" />
+                      <span className="text-sm">{doctor.country} • {doctor.timezone}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between mb-4">
+                    <div className={`px-3 py-1 rounded-full text-xs font-medium ${
+                      doctor.subscription_plan === 'pro_plus' ? 'bg-purple-100 text-purple-800' :
+                      doctor.subscription_plan === 'pro' ? 'bg-blue-100 text-blue-800' :
+                      'bg-gray-100 text-gray-800'
+                    }`}>
+                      {doctor.subscription_plan.replace('_', ' ').toUpperCase()}
+                    </div>
+                    <div className="text-right text-xs text-gray-500">
+                      Joined {formatDate(doctor.created_at)}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 mb-4 text-sm">
+                    <div className="bg-blue-50 p-2 rounded-lg">
+                      <p className="text-blue-800 font-medium">AI Minutes</p>
+                      <p className="text-blue-600">{doctor.ai_minutes_used}</p>
+                    </div>
+                    <div className="bg-green-50 p-2 rounded-lg">
+                      <p className="text-green-800 font-medium">Messages</p>
+                      <p className="text-green-600">{doctor.msg_quota_used}</p>
+                    </div>
+                  </div>
+
+                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-3 border border-blue-200">
+                    <p className="text-sm text-blue-800 font-medium">Click to view details →</p>
+                  </div>
+                </div>
+              </div>
+            ))
+          )
         ) : (
-          filteredDoctors.map((doctor) => (
+          doctors.map((doctor) => (
             <div 
               key={doctor.id} 
               className="bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-all duration-200 cursor-pointer overflow-hidden"
