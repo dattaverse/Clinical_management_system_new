@@ -1,11 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { Database, CheckCircle, XCircle, AlertCircle, Users, Building2, Calendar, FileText, Shield } from 'lucide-react';
-import { Phone, MessageSquare, Activity } from 'lucide-react';
+import { Phone, MessageSquare, Activity, Eye, EyeOff, Copy, RefreshCw } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '../../lib/supabase';
+import type { Doctor } from '../../types';
 
 const DatabaseStatus: React.FC = () => {
   const [status, setStatus] = useState<'checking' | 'connected' | 'error'>('checking');
   const [tables, setTables] = useState<any[]>([]);
+  const [doctors, setDoctors] = useState<Doctor[]>([]);
+  const [showDoctorData, setShowDoctorData] = useState(false);
+  const [showRawJson, setShowRawJson] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [systemStats, setSystemStats] = useState({
     totalUsers: 0,
     totalDoctors: 0,
@@ -30,7 +35,50 @@ const DatabaseStatus: React.FC = () => {
 
   useEffect(() => {
     checkDatabaseConnection();
+    if (isSupabaseConfigured) {
+      fetchDoctorData();
+    }
   }, []);
+
+  const fetchDoctorData = async () => {
+    try {
+      console.log('Fetching doctors from Supabase...');
+      const { data, error } = await supabase
+        .from('doctors')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching doctors:', error);
+        return;
+      }
+
+      console.log('Doctors fetched successfully:', data);
+      setDoctors(data || []);
+    } catch (err) {
+      console.error('Error in fetchDoctorData:', err);
+    }
+  };
+
+  const copyToClipboard = async () => {
+    try {
+      await navigator.clipboard.writeText(JSON.stringify(doctors, null, 2));
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy to clipboard:', err);
+    }
+  };
+
+  const formatDate = (dateStr: string) => {
+    return new Date(dateStr).toLocaleString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
 
   const checkDatabaseConnection = async () => {
     if (!isSupabaseConfigured) {
@@ -51,6 +99,7 @@ const DatabaseStatus: React.FC = () => {
       
       // Get table statistics
       await getTableStats();
+      await fetchDoctorData();
       
     } catch (err: any) {
       console.error('Database connection error:', err);
@@ -355,6 +404,133 @@ const DatabaseStatus: React.FC = () => {
             <p><strong>✅ Admin system</strong> with SuperAdmin capabilities</p>
           </div>
         </div>
+
+        {/* Doctor Data Section */}
+        {status === 'connected' && (
+          <div className="mt-6 bg-white border border-gray-200 rounded-xl p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center space-x-3">
+                <Users className="w-6 h-6 text-blue-600" />
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">Doctor Data from Supabase</h3>
+                  <p className="text-sm text-gray-600">
+                    {doctors.length} doctor{doctors.length !== 1 ? 's' : ''} found in the database
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => setShowRawJson(!showRawJson)}
+                  className="px-3 py-1 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex items-center space-x-1 text-sm"
+                >
+                  {showRawJson ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  <span>{showRawJson ? 'Hide' : 'Show'} JSON</span>
+                </button>
+                <button
+                  onClick={() => setShowDoctorData(!showDoctorData)}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+                >
+                  <Eye className="w-4 h-4" />
+                  <span>{showDoctorData ? 'Hide' : 'Show'} Doctor Data</span>
+                </button>
+                <button
+                  onClick={fetchDoctorData}
+                  className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {showDoctorData && (
+              <>
+                {doctors.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Users className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                    <h4 className="text-lg font-medium text-gray-900 mb-2">No Doctors Found</h4>
+                    <p className="text-gray-600">
+                      The doctors table is empty. You can create doctors through the admin panel or sign up process.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {doctors.map((doctor, index) => (
+                      <div key={doctor.id} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex items-center space-x-3">
+                            <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                              <Users className="w-5 h-5 text-blue-600" />
+                            </div>
+                            <div>
+                              <h4 className="font-semibold text-gray-900">{doctor.name}</h4>
+                              <p className="text-sm text-gray-600">{doctor.email}</p>
+                            </div>
+                          </div>
+                          <div className="text-right text-xs text-gray-500">
+                            <p>ID: {doctor.id}</p>
+                            <p>Created: {formatDate(doctor.created_at)}</p>
+                          </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                          <div>
+                            <span className="font-medium text-gray-700">Phone:</span>
+                            <span className="ml-2 text-gray-600">{doctor.phone}</span>
+                          </div>
+                          <div>
+                            <span className="font-medium text-gray-700">Country:</span>
+                            <span className="ml-2 text-gray-600">{doctor.country}</span>
+                          </div>
+                          <div>
+                            <span className="font-medium text-gray-700">Timezone:</span>
+                            <span className="ml-2 text-gray-600">{doctor.timezone}</span>
+                          </div>
+                          <div>
+                            <span className="font-medium text-gray-700">Plan:</span>
+                            <span className={`ml-2 px-2 py-1 rounded-full text-xs font-medium ${
+                              doctor.subscription_plan === 'pro_plus' ? 'bg-purple-100 text-purple-800' :
+                              doctor.subscription_plan === 'pro' ? 'bg-blue-100 text-blue-800' :
+                              'bg-gray-100 text-gray-800'
+                            }`}>
+                              {doctor.subscription_plan.replace('_', ' ').toUpperCase()}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="font-medium text-gray-700">AI Minutes:</span>
+                            <span className="ml-2 text-gray-600">{doctor.ai_minutes_used}</span>
+                          </div>
+                          <div>
+                            <span className="font-medium text-gray-700">Messages:</span>
+                            <span className="ml-2 text-gray-600">{doctor.msg_quota_used}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Raw JSON View */}
+                {showRawJson && doctors.length > 0 && (
+                  <div className="mt-6 bg-gray-900 rounded-xl p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="text-white font-medium">Raw JSON Data</h4>
+                      <button
+                        onClick={copyToClipboard}
+                        className="px-3 py-1 bg-gray-700 text-gray-300 rounded text-sm hover:bg-gray-600 transition-colors flex items-center space-x-1"
+                      >
+                        <Copy className="w-3 h-3" />
+                        <span>{copied ? 'Copied!' : 'Copy'}</span>
+                      </button>
+                    </div>
+                    <pre className="text-green-400 text-xs overflow-x-auto max-h-96 overflow-y-auto">
+                      {JSON.stringify(doctors, null, 2)}
+                    </pre>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
