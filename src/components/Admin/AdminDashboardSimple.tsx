@@ -589,12 +589,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ setActiveTab }) => {
         <AddDoctorModal
          isOpen={showAddModal}
           onClose={() => setShowAddModal(false)}
-         onDoctorAdded={() => {
-          console.log('Doctor added callback triggered, refreshing data...');
-           fetchDoctors();
-          fetchSystemStats();
-           setShowAddModal(false);
-         }}
+          onDoctorAdded={handleDoctorAdded}
         />
       )}
     </div>

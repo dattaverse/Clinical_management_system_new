@@ -97,6 +97,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ setActiveTab }) => {
         } catch (supabaseError) {
           console.warn('Failed to fetch from Supabase, using demo data:', supabaseError);
           setError(`Connection error: ${supabaseError instanceof Error ? supabaseError.message : 'Unknown error'}`);
+        }
         // Fall back to demo data but include any newly created doctors
         const demoDoctors = getDemoDoctors();
         setDoctors(demoDoctors);
@@ -231,14 +232,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ setActiveTab }) => {
           created_at: '2024-01-30T08:15:00Z'
         }
       ];
-      setDoctors(demoDoctors);
-      setSystemStats(prev => ({ ...prev, totalDoctors: demoDoctors.length }));
-    } catch (error) {
-      console.error('Error fetching doctors:', error);
-      setDoctors([]);
-    } finally {
-      setDoctorsLoading(false);
-    }
   };
 
   const fetchSystemStats = async () => {
@@ -598,7 +591,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ setActiveTab }) => {
         <AddDoctorModal
          isOpen={showAddModal}
           onClose={() => setShowAddModal(false)}
-         onDoctorAdded={() => {
+         onDoctorAdded={(newDoctor) => {
           console.log('Doctor added callback triggered, refreshing data...');
            fetchDoctors();
           fetchSystemStats();
