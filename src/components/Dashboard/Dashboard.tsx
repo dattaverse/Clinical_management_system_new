@@ -11,17 +11,18 @@ import AdminDashboard from '../Admin/AdminDashboard';
 import CreateClinicModal from '../Clinics/CreateClinicModal';
 
 interface DashboardProps {
+  activeTab: string;
   setActiveTab: (tab: string) => void;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ setActiveTab }) => {
+const Dashboard: React.FC<DashboardProps> = ({ activeTab, setActiveTab }) => {
   const { isAdmin, admin, doctor } = useAuth();
   const { selectedClinic, setSelectedClinic, clinics, loading, refreshClinics } = useClinicContext();
   const [showCreateClinicModal, setShowCreateClinicModal] = React.useState(false);
 
   // If user is admin, show admin dashboard
   if (isAdmin) {
-    return <AdminDashboard />;
+    return <AdminDashboard activeTab={activeTab} setActiveTab={setActiveTab} />;
   }
 
   // Handle case where no doctor data is available

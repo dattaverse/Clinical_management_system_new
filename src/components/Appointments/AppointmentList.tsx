@@ -237,6 +237,43 @@ const AppointmentList: React.FC = () => {
     }
   };
 
+  const handleStartAppointment = async (appointment: Appointment) => {
+    try {
+      if (!isSupabaseConfigured) {
+        // Demo mode - just update local state
+        setAppointments(prev => prev.map(apt => 
+          apt.id === appointment.id 
+            ? { ...apt, status: 'complete' }
+            : apt
+        ));
+        alert('Demo: Appointment marked as complete!');
+        return;
+      }
+
+      // Update appointment status to complete
+      const { error } = await supabase
+        .from('appointments')
+        .update({ 
+          status: 'complete',
+          notes: appointment.notes ? `${appointment.notes} | Completed on ${new Date().toLocaleString()}` : `Completed on ${new Date().toLocaleString()}`
+        })
+        .eq('id', appointment.id);
+
+      if (error) throw error;
+
+      // Update local state
+      setAppointments(prev => prev.map(apt => 
+        apt.id === appointment.id 
+          ? { ...apt, status: 'complete' }
+          : apt
+      ));
+
+      alert('Appointment marked as complete successfully!');
+    } catch (error) {
+      console.error('Error completing appointment:', error);
+      alert('Failed to mark appointment as complete');
+    }
+  };
   const handleEditAppointment = (appointment: Appointment) => {
     setEditingAppointment(appointment);
     setShowEditModal(true);

@@ -34,9 +34,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, isOpen, onCl
     { id: 'appointments', label: 'Appointments', icon: Calendar },
     { id: 'prescriptions', label: 'Prescriptions', icon: FileText },
     { id: 'communication', label: 'Communication', icon: MessageSquare },
-    { id: 'marketing', label: 'Marketing', icon: Megaphone },
     ...(isAdmin ? [
-      { id: 'voice-agent', label: 'Voice Agent', icon: Phone },
       { id: 'analytics', label: 'Analytics', icon: BarChart3 },
       { id: 'database-status', label: 'Database Status', icon: Database },
       { id: 'compliance', label: 'Compliance', icon: Shield },

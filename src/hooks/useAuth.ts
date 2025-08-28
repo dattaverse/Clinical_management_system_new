@@ -19,9 +19,32 @@ export const useAuth = () => {
     const initAuth = async () => {
       try {
         if (!isSupabaseConfigured) {
-          console.log('Demo mode - no auto user creation');
-          // Don't auto-create user in demo mode, let them sign in
+          console.log('Demo mode - creating demo user');
+          // Demo mode - create a mock user immediately
+          const demoUser = {
+            id: 'demo-user-id',
+            email: 'demo@healthsphere.com',
+            user_metadata: {}
+          };
+          const demoDoctor: Doctor = {
+            id: 'demo-user-id',
+            email: 'demo@healthsphere.com',
+            name: 'Dr. Demo User',
+            country: 'US',
+            phone: '+1 (555) 123-4567',
+            timezone: 'UTC',
+            subscription_plan: 'pro',
+            ai_minutes_used: 120,
+            msg_quota_used: 432,
+            created_at: new Date().toISOString()
+          };
+          
+          setUser(demoUser);
+          setDoctor(demoDoctor);
+          setAdmin(null);
+          setIsAdmin(false);
           setLoading(false);
+          console.log('Demo user created successfully');
           return;
         }
 
@@ -39,7 +62,7 @@ export const useAuth = () => {
         }
 
         // Listen for auth changes
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event: any, session: any) => {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
           console.log('Auth state changed:', event, session?.user?.email);
           
           if (session?.user) {
@@ -328,7 +351,7 @@ export const useAuth = () => {
     setLoading(false);
     
     if (!isSupabaseConfigured) {
-      console.log('Demo mode - user state cleared');
+      console.log('Demo mode - clearing user state');
       return;
     }
 

@@ -18,6 +18,39 @@ const UpcomingAppointments: React.FC = () => {
     }
   }, [doctor, selectedClinic]);
 
+  const handleCompleteAppointment = async (appointmentId: string) => {
+    try {
+      if (!isSupabaseConfigured) {
+        // Demo mode - just update local state
+        setAppointments(prev => prev.map(apt => 
+          apt.id === appointmentId 
+            ? { ...apt, status: 'complete' }
+            : apt.filter(a => a.id !== appointmentId) // Remove from upcoming list
+        ));
+        alert('Demo: Appointment marked as complete!');
+        return;
+      }
+
+      // Update appointment status to complete
+      const { error } = await supabase
+        .from('appointments')
+        .update({ 
+          status: 'complete',
+          notes: `Completed on ${new Date().toLocaleString()}`
+        })
+        .eq('id', appointmentId);
+
+      if (error) throw error;
+
+      // Remove from upcoming appointments list since it's now complete
+      setAppointments(prev => prev.filter(apt => apt.id !== appointmentId));
+
+      alert('Appointment marked as complete successfully!');
+    } catch (error) {
+      console.error('Error completing appointment:', error);
+      alert('Failed to mark appointment as complete');
+    }
+  };
   const fetchUpcomingAppointments = async () => {
     if (!doctor) return;
 
@@ -246,6 +279,7 @@ const UpcomingAppointments: React.FC = () => {
               </div>
               <div className="flex space-x-2">
                 <button className="px-3 py-1 text-xs bg-green-100 text-green-800 rounded-full hover:bg-green-200 transition-colors">
+                  onClick={() => handleCompleteAppointment(appointment.id)}
                   Start
                 </button>
                 <button className="px-3 py-1 text-xs bg-gray-100 text-gray-800 rounded-full hover:bg-gray-200 transition-colors">

@@ -14,6 +14,7 @@ import VoiceAgentList from './components/VoiceAgent/VoiceAgentList';
 import { ClinicProvider } from './contexts/ClinicContext';
 import ComplianceManagement from './components/Admin/ComplianceManagement';
 import SystemSettings from './components/Admin/SystemSettings';
+import AnalyticsPage from './components/Analytics/AnalyticsPage';
 
 // Placeholder components for other tabs
 const Placeholder: React.FC<{ title: string }> = ({ title }) => (
@@ -84,7 +85,7 @@ const App: React.FC = React.memo(() => {
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard':
-        return <Dashboard setActiveTab={setActiveTab} />;
+        return <Dashboard activeTab={activeTab} setActiveTab={setActiveTab} />;
       case 'clinics':
         return <ClinicList />;
       case 'patients':
@@ -102,7 +103,7 @@ const App: React.FC = React.memo(() => {
       case 'voice-agent':
         return <VoiceAgentList />;
       case 'analytics':
-        return <Placeholder title="Analytics" />;
+        return <AnalyticsPage />;
       case 'compliance':
         return <ComplianceManagement />;
       case 'settings':
