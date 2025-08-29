@@ -100,6 +100,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ setActiveTab }) => {
         } catch (supabaseError) {
           console.warn('Failed to fetch from Supabase, using demo data:', supabaseError);
           setError(`Connection error: ${supabaseError instanceof Error ? supabaseError.message : 'Unknown error'}`);
+        }
       } else {
         console.warn('Supabase not configured, using demo data');
         setError('Supabase not configured - using demo data');
@@ -257,6 +258,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ setActiveTab }) => {
     } catch (error) {
       console.error('Error fetching system stats:', error);
     }
+  };
+
+  const handleDoctorAdded = (newDoctor: Doctor) => {
+    setDoctors(prev => [newDoctor, ...prev]);
+    setSystemStats(prev => ({ ...prev, totalDoctors: prev.totalDoctors + 1 }));
   };
 
   const filteredDoctors = doctors.filter((doctor: Doctor) =>
