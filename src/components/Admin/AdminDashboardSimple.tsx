@@ -100,11 +100,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ setActiveTab }) => {
         } catch (supabaseError) {
           console.warn('Failed to fetch from Supabase, using demo data:', supabaseError);
           setError(`Connection error: ${supabaseError instanceof Error ? supabaseError.message : 'Unknown error'}`);
-        // Fall back to demo data but include any newly created doctors
-        const demoDoctors = getDemoDoctors();
-        setDoctors(demoDoctors);
-        setSystemStats(prev => ({ ...prev, totalDoctors: demoDoctors.length }));
-        return;
       } else {
         console.warn('Supabase not configured, using demo data');
         setError('Supabase not configured - using demo data');
